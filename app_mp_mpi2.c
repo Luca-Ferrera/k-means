@@ -61,6 +61,23 @@ int main(int argc, char *argv[])
     double *p_y = malloc(sizeof(double) * n_points);
     double *centroid_x = malloc(sizeof(double) * n_centroids);
     double *centroid_y = malloc(sizeof(double) * n_centroids);
+    
+    //Support data structures
+    double *new_centroid_x = malloc(n_centroids * sizeof(double));
+    double *new_centroid_y = malloc(n_centroids * sizeof(double));
+    int *new_centroids_n_points = malloc(n_centroids * sizeof(int));
+    int *global_new_centroids_n_points = malloc(n_centroids * sizeof(int));
+    double *global_new_centroid_x = malloc(n_centroids * sizeof(double));
+    double *global_new_centroid_y = malloc(n_centroids * sizeof(double));
+    double global_curr_error;
+
+    //create data structures for divide the centroids calculation load 
+    double *local_new_centroids_x = malloc(n_centroids/world_size * sizeof(double));
+    double *local_new_centroids_y = malloc(n_centroids/world_size * sizeof(double));
+    double *local_centroids_x = malloc(n_centroids/world_size * sizeof(double));
+    double *local_centroids_y = malloc(n_centroids/world_size * sizeof(double));
+    int *local_centroids_n_points = malloc(n_centroids/world_size *sizeof(int));
+    double local_curr_error;
     //migliorare read_points come array di variabili primitive invece di usare le struct
     point *points;
     point *centroids;
@@ -104,23 +121,6 @@ int main(int argc, char *argv[])
         MPI_DOUBLE,
         MASTER,
         MPI_COMM_WORLD);
-
-    //Support data structures
-    double *new_centroid_x = malloc(n_centroids * sizeof(double));
-    double *new_centroid_y = malloc(n_centroids * sizeof(double));
-    int *new_centroids_n_points = malloc(n_centroids * sizeof(int));
-    int *global_new_centroids_n_points = malloc(n_centroids * sizeof(int));
-    double *global_new_centroid_x = malloc(n_centroids * sizeof(double));
-    double *global_new_centroid_y = malloc(n_centroids * sizeof(double));
-    double global_curr_error, local_curr_error;
-
-    //create data structures for divide the centroids calculation load 
-    double *partial_new_centroids_x = malloc(n_centroids/world_size * sizeof(double));
-    double *partial_new_centroids_y = malloc(n_centroids/world_size * sizeof(double));
-    double *partial_centroids_x = malloc(n_centroids/world_size * sizeof(double));
-    double *partial_centroids_y = malloc(n_centroids/world_size * sizeof(double));
-    int * partial_centroids_n_points = malloc(n_centroids/world_size *sizeof(int));
-
 
     //Start computation
     int iteration = 0;
@@ -208,17 +208,23 @@ int main(int argc, char *argv[])
             MPI_SUM,
             MASTER,
             MPI_COMM_WORLD);
+        
 
 
         //divide centroids to peers
-        for(i = 0; i < n_centroids; i++){
-            printf("NCX: %f NCY: %f\n", new_centroid_x[i], new_centroid_y[i]);
+        if(world_rank == MASTER){
+            for(i = 0; i < n_centroids; i++){
+                //printf("Iteration: %d GCX: %f GCY: %f\n", iteration, centroid_x[i], centroid_y[i]);
+                //printf("Iteration: %d GNCX: %f GNCY: %f\n",iteration, global_new_centroid_x[i], global_new_centroid_y[i]);
+                
+            }
         }
+
         MPI_Scatter(
             centroid_x,
             n_centroids/world_size,
             MPI_DOUBLE,
-            partial_centroids_x,
+            local_centroids_x,
             n_centroids/world_size,
             MPI_DOUBLE,
             MASTER,
@@ -228,7 +234,7 @@ int main(int argc, char *argv[])
             centroid_y,
             n_centroids/world_size,
             MPI_DOUBLE,
-            partial_centroids_y,
+            local_centroids_y,
             n_centroids/world_size,
             MPI_DOUBLE,
             MASTER,
@@ -238,7 +244,7 @@ int main(int argc, char *argv[])
             global_new_centroid_x,
             n_centroids/world_size,
             MPI_DOUBLE,
-            partial_new_centroids_x,
+            local_new_centroids_x,
             n_centroids/world_size,
             MPI_DOUBLE,
             MASTER,
@@ -248,7 +254,7 @@ int main(int argc, char *argv[])
             global_new_centroid_y,
             n_centroids/world_size,
             MPI_DOUBLE,
-            partial_new_centroids_y,
+            local_new_centroids_y,
             n_centroids/world_size,
             MPI_DOUBLE,
             MASTER,
@@ -258,40 +264,30 @@ int main(int argc, char *argv[])
             new_centroids_n_points,
             n_centroids/world_size,
             MPI_INT,
-            partial_centroids_n_points,
+            local_centroids_n_points,
             n_centroids/world_size,
             MPI_INT,
             MASTER,
             MPI_COMM_WORLD
         );
-        
-        for(i = 0; i < n_centroids; i++){
-            printf("PNCX: %f PNCY: %f\n", partial_new_centroids_x[i], partial_new_centroids_y[i]);
-        }
-    
-            //TODO: 
-            //calcolare la distanza con MPI divindendo i centroidi 
-            //barrier - rec(nuovi centroidi parziali) - send(centroidi-parziali) - bcast(centroidi aggiornati)
-            //Calculate the new centroids and the error
-        //#pragma omp parallel for reduction(+: curr_error)
-        for(i = 0; i < n_centroids/world_size; i++){
-            printf(" Before GCX: %f GCY: %f CE: %f GNC: %d, OGCX: %f, OGCY: %f\n", partial_new_centroids_x[i], partial_new_centroids_y[i], local_curr_error, partial_centroids_n_points[i],partial_centroids_x[i],partial_centroids_y[i] );
-            partial_new_centroids_x[i] = partial_new_centroids_x[i] / partial_centroids_n_points[i];
-            partial_new_centroids_y[i] = partial_new_centroids_y[i] / partial_centroids_n_points[i];
-            //#pragma omp critical
-            //{
-                local_curr_error += calc_distance(partial_centroids_x[i], partial_centroids_y[i], partial_new_centroids_x[i], partial_new_centroids_y[i], dist_algo);
-            //}
-            partial_centroids_x[i] = partial_new_centroids_x[i];
-            partial_centroids_y[i] = partial_new_centroids_y[i];
-            printf(" Before GCX: %f GCY: %f CE: %f GNC: %d, OGCX: %f, OGCY: %f\n", partial_new_centroids_x[i], partial_new_centroids_y[i], local_curr_error, partial_centroids_n_points[i],partial_centroids_x[i],partial_centroids_y[i] );
-        }
-        printf("Current local error : %lf -- Curr iteration : %d\n", local_curr_error, iteration);
             
+        //***maybe useless***
+        #pragma omp parallel for reduction(+: local_curr_error)
+        for(i = 0; i < n_centroids/world_size; i++){
+            int rank;
+            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+            if (local_centroids_n_points[i] != 0){
+                
+                local_new_centroids_x[i] = local_new_centroids_x[i] / local_centroids_n_points[i];
+                local_new_centroids_y[i] = local_new_centroids_y[i] / local_centroids_n_points[i];
+                local_curr_error += calc_distance(local_centroids_x[i], local_centroids_y[i], local_new_centroids_x[i], local_new_centroids_y[i], dist_algo);
+                local_centroids_x[i] = local_new_centroids_x[i];
+                local_centroids_y[i] = local_new_centroids_y[i];
+            }
+        }
          
-        //if(world_rank == MASTER){
         MPI_Gather(
-            partial_centroids_x,
+            local_centroids_x,
             n_centroids/world_size,
             MPI_DOUBLE,
             centroid_x,
@@ -301,7 +297,7 @@ int main(int argc, char *argv[])
             MPI_COMM_WORLD
         );
         MPI_Gather(
-            partial_centroids_y,
+            local_centroids_y,
             n_centroids/world_size,
             MPI_DOUBLE,
             centroid_y,
@@ -311,7 +307,7 @@ int main(int argc, char *argv[])
             MPI_COMM_WORLD
         );
         MPI_Gather(
-            partial_new_centroids_x,
+            local_new_centroids_x,
             n_centroids/world_size,
             MPI_DOUBLE,
             global_new_centroid_x,
@@ -321,7 +317,7 @@ int main(int argc, char *argv[])
             MPI_COMM_WORLD
         );
         MPI_Gather(
-            partial_new_centroids_y,
+            local_new_centroids_y,
             n_centroids/world_size,
             MPI_DOUBLE,
             global_new_centroid_y,
@@ -331,7 +327,7 @@ int main(int argc, char *argv[])
             MPI_COMM_WORLD
         );
         MPI_Gather(
-            partial_centroids_n_points,
+            local_centroids_n_points,
             n_centroids/world_size,
             MPI_INT,
             new_centroids_n_points,
@@ -340,8 +336,6 @@ int main(int argc, char *argv[])
             MASTER,
             MPI_COMM_WORLD
         );
-        
-        //sum all local_curr_error into global_curr_err   
         MPI_Reduce(
             &local_curr_error,
             &global_curr_error,
@@ -352,14 +346,14 @@ int main(int argc, char *argv[])
             MPI_COMM_WORLD
         );
                 
-
         if(world_rank == MASTER){
-            iteration++;
             printf("Current global error : %lf -- Curr iteration : %d\n", global_curr_error, iteration);
+            iteration++;
             if (global_curr_error < error)
             {
                 done = 1;
             }
+
         }
         
         MPI_Bcast(
