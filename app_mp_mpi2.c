@@ -35,8 +35,7 @@ void print_point(point *p);
 int main(int argc, char *argv[])
 {
     int i,j;
-    struct timeval start_time, end_time;
-    gettimeofday(&start_time, NULL);
+   
 
     //MPI Initiliazation
     MPI_Init(NULL, NULL);
@@ -124,6 +123,8 @@ int main(int argc, char *argv[])
 
     //Start computation
     int iteration = 0;
+    struct timeval start_time, end_time;
+    gettimeofday(&start_time, NULL);
 
     do
     {
@@ -370,8 +371,12 @@ int main(int argc, char *argv[])
 
     MPI_Finalize();
 
-    printf("Time elapsed is %lu\n", end_time.tv_sec - start_time.tv_sec);
-
+    if(world_rank == MASTER){
+        if((long int)end_time.tv_usec - (long int) start_time.tv_usec < 0)
+            printf("Time elapsed for computation: %ld.%06ld\n", (long int) end_time.tv_sec - (long int) start_time.tv_sec - (long int) 1, (long int) 1 - ((long int) end_time.tv_usec - (long int)start_time.tv_usec));        
+        else
+            printf("Time elapsed for computation: %ld.%06ld\n", (long int) end_time.tv_sec - (long int) start_time.tv_sec , (long int) end_time.tv_usec - (long int)start_time.tv_usec);        
+    }
     return 0;
 }
 
