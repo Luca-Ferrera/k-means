@@ -17,6 +17,7 @@ typedef struct
 
 point *read_points(char *filepath, int n);
 double calc_distance(double p1_x, double p1_y, double p2_x, double p2_y, int algo);
+void write_new_centroids(double x[], double y[], int n_centroids, char *output);
 
 void print_point(point *p);
 
@@ -52,6 +53,7 @@ int main(int argc, char *argv[])
     int n_centroids = atoi(argv[4]);
     int dist_algo = atoi(argv[5]);
     double error = atof(argv[6]);
+    char *output_file = argv[7];
 
     //Creating data structures
     double *point_x = malloc(sizeof(double) * n_points / world_size);
@@ -244,7 +246,29 @@ int main(int argc, char *argv[])
 
     printf("Time elapsed is %lu\n", end_time.tv_sec - start_time.tv_sec);
 
+
+    if(world_rank == MASTER){
+	    write_new_centroids(global_new_centroid_x, global_new_centroid_y, n_centroids, output_file);
+    }
+
     return 0;
+}
+
+void write_new_centroids(double x[], double y[], int n_centroids, char *output) {
+	int i;
+	FILE *fp;
+	fp = fopen(output, "w");
+
+	if(fp == NULL) {
+		perror("Error while opening the file\n");
+		exit(EXIT_FAILURE);
+	}
+
+	for(i = 0; i < n_centroids; i++) {
+		printf("x %lf y %lf iteration i %d\n", x[i], y[i], i);
+		fprintf(fp, "%lf %lf\n", x[i],y[i]);
+	}
+	fclose(fp);
 }
 
 point *read_points(char *filepath, int n)
