@@ -248,7 +248,7 @@ int main(int argc, char *argv[])
 
 
     if(world_rank == MASTER){
-	    write_new_centroids(global_new_centroid_x, global_new_centroid_y, n_centroids, output_file);
+	    write_new_centroids(centroid_x, centroid_y, n_centroids, output_file);
     }
 
     return 0;

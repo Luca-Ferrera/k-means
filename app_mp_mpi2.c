@@ -368,7 +368,7 @@ int main(int argc, char *argv[])
         else
             printf("Time elapsed for computation: %ld.%06ld\n", (long int)end_time.tv_sec - (long int)start_time.tv_sec, (long int)end_time.tv_usec - (long int)start_time.tv_usec);
 
-        write_new_centroids(global_new_centroid_x, global_new_centroid_y, n_centroids, output_file);
+        write_new_centroids(centroid_x, centroid_y, n_centroids, output_file);
     }
 
     return 0;
