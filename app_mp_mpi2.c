@@ -86,14 +86,14 @@ int main(int argc, char *argv[])
     {
         points = read_points(argv[1], n_points);
         centroids = read_points(argv[3], n_centroids);
-//openMP per splittare il for DONE
-#pragma omp parallel for
+        //openMP per splittare il for DONE
+        #pragma omp parallel for
         for (i = 0; i < n_points; i++)
         {
             p_x[i] = points[i].x;
             p_y[i] = points[i].y;
         }
-#pragma omp parallel for
+        #pragma omp parallel for
         for (i = 0; i < n_centroids; i++)
         {
             centroid_x[i] = centroids[i].x;
@@ -146,7 +146,8 @@ int main(int argc, char *argv[])
         //Resetting support data structures
         global_curr_error = 0;
         local_curr_error = 0;
-#pragma omp parallel for
+        
+        #pragma omp parallel for
         for (i = 0; i < n_centroids; i++)
         {
             new_centroid_x[i] = 0;
@@ -154,9 +155,9 @@ int main(int argc, char *argv[])
             new_centroids_n_points[i] = 0;
         }
 
-//For each point, look for the closest centroid and
-//assing the point to the centroid.
-#pragma omp parallel for
+        //For each point, look for the closest centroid and
+        //assing the point to the centroid.
+        #pragma omp parallel for
         for (i = 0; i < n_points / world_size; i++)
         {
 
@@ -175,7 +176,7 @@ int main(int argc, char *argv[])
                 }
             }
 
-#pragma omp critical
+            #pragma omp critical
             {
                 new_centroid_x[closest_centroid] += point_x[i];
                 new_centroid_y[closest_centroid] += point_y[i];
@@ -210,15 +211,9 @@ int main(int argc, char *argv[])
             MASTER,
             MPI_COMM_WORLD);
 
+
         //divide centroids to peers
-        if (world_rank == MASTER)
-        {
-            for (i = 0; i < n_centroids; i++)
-            {
-                //printf("Iteration: %d GCX: %f GCY: %f\n", iteration, centroid_x[i], centroid_y[i]);
-                //printf("Iteration: %d GNCX: %f GNCY: %f\n",iteration, global_new_centroid_x[i], global_new_centroid_y[i]);
-            }
-        }
+
 
         MPI_Scatter(
             centroid_x,
@@ -257,7 +252,7 @@ int main(int argc, char *argv[])
             MASTER,
             MPI_COMM_WORLD);
         MPI_Scatter(
-            new_centroids_n_points,
+            global_new_centroids_n_points,
             n_centroids / world_size,
             MPI_INT,
             local_centroids_n_points,
@@ -275,7 +270,6 @@ int main(int argc, char *argv[])
             MPI_Comm_rank(MPI_COMM_WORLD, &rank);
             if (local_centroids_n_points[i] != 0)
             {
-
                 local_new_centroids_x[i] = local_new_centroids_x[i] / local_centroids_n_points[i];
                 local_new_centroids_y[i] = local_new_centroids_y[i] / local_centroids_n_points[i];
                 local_curr_error += calc_distance(local_centroids_x[i], local_centroids_y[i], local_new_centroids_x[i], local_new_centroids_y[i], dist_algo);

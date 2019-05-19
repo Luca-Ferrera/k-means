@@ -36,7 +36,7 @@ void print_point(point *p);
 */
 int main(int argc, char *argv[])
 {
-
+    int i,j;
     struct timeval start_time, end_time;
     gettimeofday(&start_time, NULL);
 
@@ -73,12 +73,12 @@ int main(int argc, char *argv[])
         points = read_points(argv[1], n_points);
         centroids = read_points(argv[3], n_centroids);
         //openMP per splittare il for
-        for (int i = 0; i < n_points; i++)
+        for (i = 0; i < n_points; i++)
         {
             p_x[i] = points[i].x;
             p_y[i] = points[i].y;
         }
-        for (int i = 0; i < n_centroids; i++)
+        for (i = 0; i < n_centroids; i++)
         {
             centroid_x[i] = centroids[i].x;
             centroid_y[i] = centroids[i].y;
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
         //Resetting support data structures
         curr_error = 0;
         #pragma omp parallel for
-        for (int i = 0; i < n_centroids; i++)
+        for (i = 0; i < n_centroids; i++)
         {
             new_centroid_x[i] = 0;
             new_centroid_y[i] = 0;
@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
         //assing the point to the centroid.
         int temp = 0;
         #pragma omp parallel for reduction(+: temp)
-        for (int i = 0; i < n_points / world_size; i++)
+        for ( i = 0; i < n_points / world_size; i++)
         {
 
             temp++;
@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
             int closest_centroid = INVALID;
 
 
-            for (int j = 0; j < n_centroids; j++)
+            for (j = 0; j < n_centroids; j++)
             {
 
                 double distance = calc_distance(point_x[i], point_y[i], centroid_x[j], centroid_y[j], dist_algo);
@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
             //barrier - rec(nuovi centroidi parziali) - send(centroidi-parziali) - bcast(centroidi aggiornati)
             //Calculate the new centroids and the error
             #pragma omp parallel for reduction(+: curr_error)
-            for (int i = 0; i < n_centroids; i++)
+            for (i = 0; i < n_centroids; i++)
             {
 
                 //printf("centroid %d has %d points\n", i, global_new_centroids_n_points[i]);
@@ -280,7 +280,7 @@ void write_new_centroids(double x[], double y[], int n_centroids, char *output) 
 
 point *read_points(char *filepath, int n)
 {
-
+    int i;
     FILE *fp;
     fp = fopen(filepath, "r"); // read mode
 
@@ -293,7 +293,7 @@ point *read_points(char *filepath, int n)
     //Create the point array
     point *points = malloc(n * sizeof(point));
 
-    for (int i = 0; i < n; i++)
+    for ( i = 0; i < n; i++)
     {
         char string[BUFFER_SIZE];
         fgets(string, BUFFER_SIZE, fp);
