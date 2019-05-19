@@ -30,7 +30,7 @@ old_centroids_x = []
 old_centroids_y = []
 
 #read the old and the new centroids, convert to float and split them in x and 7 coordinates
-for c in range(1, new_centroids):
+for c in range(1, new_centroids+1):
     
     line1 = f1.readline()
     line2 = f2.readline()

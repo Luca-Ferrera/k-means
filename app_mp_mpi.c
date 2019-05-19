@@ -32,6 +32,7 @@ void print_point(point *p);
             - 1, Euclidean
             - 2, Euclidean no SQRT
         - Error.
+        - Output file.
 */
 int main(int argc, char *argv[])
 {
@@ -145,12 +146,15 @@ int main(int argc, char *argv[])
 
         //For each point, look for the closest centroid and
         //assing the point to the centroid.
-        #pragma omp parallel for
+        int temp = 0;
+        #pragma omp parallel for reduction(+: temp)
         for (int i = 0; i < n_points / world_size; i++)
         {
 
+            temp++;
             double min_distance = INVALID;
             int closest_centroid = INVALID;
+
 
             for (int j = 0; j < n_centroids; j++)
             {
@@ -162,6 +166,7 @@ int main(int argc, char *argv[])
                     min_distance = distance;
                     closest_centroid = j;
                 }
+
             }
 
             #pragma omp critical
@@ -199,6 +204,7 @@ int main(int argc, char *argv[])
             MASTER,
             MPI_COMM_WORLD);
 
+        //printf("%d %d\n", temp, n_points);
         if (world_rank == MASTER)
         {
             //TODO: 
@@ -209,7 +215,8 @@ int main(int argc, char *argv[])
             for (int i = 0; i < n_centroids; i++)
             {
 
-                if (new_centroids_n_points[i] != 0)
+                //printf("centroid %d has %d points\n", i, global_new_centroids_n_points[i]);
+                if (global_new_centroids_n_points[i] != 0)
                 {
                     global_new_centroid_x[i] = global_new_centroid_x[i] / global_new_centroids_n_points[i];
                     global_new_centroid_y[i] = global_new_centroid_y[i] / global_new_centroids_n_points[i];
