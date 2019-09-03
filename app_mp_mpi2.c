@@ -123,12 +123,12 @@ int main(int argc, char *argv[])
 
     //Start computation
     int iteration = 0;
-    struct timeval start_time, end_time;
+    struct timeval start_time, end_time, start_time_distance, end_time_distance, start_time_centroids, end_time_centroids;
     gettimeofday(&start_time, NULL);
 
     do
     {
-
+        //SCATTER instead?
         //Broadcasting centroids
         MPI_Bcast(
             centroid_x,
@@ -157,6 +157,7 @@ int main(int argc, char *argv[])
 
         //For each point, look for the closest centroid and
         //assing the point to the centroid.
+        gettimeofday(&start_time_distance, NULL);
         #pragma omp parallel for
         for (i = 0; i < n_points / world_size; i++)
         {
@@ -182,6 +183,14 @@ int main(int argc, char *argv[])
                 new_centroid_y[closest_centroid] += point_y[i];
                 new_centroids_n_points[closest_centroid]++;
             }
+        }
+        gettimeofday(&end_time_distance, NULL);
+        if (world_rank == MASTER)
+        {
+            if ((long int)end_time_distance.tv_usec - (long int)start_time_distance.tv_usec < 0)
+                printf("Iteration: %d time elapsed for distance computation: %ld.%06ld\n", iteration, (long int)end_time_distance.tv_sec - (long int)start_time_distance.tv_sec - (long int)1, (long int)1 - ((long int)end_time_distance.tv_usec - (long int)start_time_distance.tv_usec));
+            else
+                printf("Iteration: %d time elapsed for distance computation: %ld.%06ld\n", iteration, (long int)end_time_distance.tv_sec - (long int)start_time_distance.tv_sec, (long int)end_time_distance.tv_usec - (long int)start_time_distance.tv_usec);
         }
 
         MPI_Reduce(
@@ -261,8 +270,9 @@ int main(int argc, char *argv[])
             MASTER,
             MPI_COMM_WORLD);
 
-//***maybe useless***
-#pragma omp parallel for reduction(+ \
+        gettimeofday(&start_time_centroids, NULL);        
+        //***maybe useless***
+        #pragma omp parallel for reduction(+ \
                                    : local_curr_error)
         for (i = 0; i < n_centroids / world_size; i++)
         {
@@ -276,6 +286,14 @@ int main(int argc, char *argv[])
                 local_centroids_x[i] = local_new_centroids_x[i];
                 local_centroids_y[i] = local_new_centroids_y[i];
             }
+        }
+        gettimeofday(&end_time_centroids, NULL);
+        if (world_rank == MASTER)
+        {
+            if ((long int)end_time_centroids.tv_usec - (long int)start_time_centroids.tv_usec < 0)
+                printf("Iteration: %d time elapsed for centroids computation: %ld.%06ld\n", iteration, (long int)end_time_centroids.tv_sec - (long int)start_time_centroids.tv_sec - (long int)1, (long int)1 - ((long int)end_time_centroids.tv_usec - (long int)start_time_centroids.tv_usec));
+            else
+                printf("Iteration: %d time elapsed for centroids computation: %ld.%06ld\n", iteration, (long int)end_time_centroids.tv_sec - (long int)start_time_centroids.tv_sec, (long int)end_time_centroids.tv_usec - (long int)start_time_centroids.tv_usec);
         }
 
         MPI_Gather(
