@@ -36,7 +36,6 @@ void print_point(point *p);
 */
 int main(int argc, char *argv[])
 {
-
     struct timeval start_time, end_time;
     gettimeofday(&start_time, NULL);
 
@@ -55,6 +54,7 @@ int main(int argc, char *argv[])
     int dist_algo = atoi(argv[5]);
     double error = atof(argv[6]);
     char *output_file = argv[7];
+    int n_threads = argv[8];
 
     //Creating data structures
     double *point_x = malloc(sizeof(double) * n_points / world_size);
@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
 
         //For each point, look for the closest centroid and
         //assing the point to the centroid.
-        #pragma omp parallel for reduction(+: new_centroid_x,new_centroid_y, new_centroids_n_points)
+        #pragma omp parallel for reduction(+: new_centroid_x[:n_centroids],new_centroid_y[:n_centroids], new_centroids_n_points[:n_centroids])
         for (int i = 0; i < n_points / world_size; i++)
         {
             double min_distance = INVALID;
