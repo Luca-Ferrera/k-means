@@ -112,11 +112,6 @@ int main(int argc, char *argv[])
     double *local_new_centroid_y = malloc(n_centroids/world_size * sizeof(double));
     //Counts the number of points associated to the new local centroid
     int *local_new_centroids_n_points = malloc(n_centroids/world_size * sizeof(int));
-    //
-    double *global_new_centroid_x = malloc(n_centroids * sizeof(double));
-    double *global_new_centroid_y = malloc(n_centroids * sizeof(double));
-    //
-    int *global_new_centroids_n_points = malloc(n_centroids * sizeof(int));
     //Indicates for each node how many centroid it will receive
     int *recvcounts = malloc(world_size * sizeof(int));
     double curr_error;
